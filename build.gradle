@@ -23,6 +23,37 @@ minecraft {
     mappings channel: 'official', version: '1.20.1'
 }
 
+def testClient = findProperty('documentTestClient')
+if (testClient) {
+    if (!(testClient in ['DocWriter', 'DocReader'])) throw new GradleException('Expected DocWriter or DocReader')
+    repositories {
+        flatDir { dirs coreJar.parentFile }
+        exclusiveContent {
+            forRepository { maven { url = 'https://chocolateminecraft.com/maven' } }
+            filter { includeGroup 'xaero.pac' }
+        }
+    }
+    dependencies {
+        runtimeOnly fg.deobf('local:historical_nations:0.2.0')
+        runtimeOnly 'xaero.pac:open-parties-and-claims-forge-1.20.1:0.33.0:dev'
+    }
+    minecraft.runs {
+        client {
+            workingDirectory project.file("run-${testClient}")
+            mods {
+                historical_documents { source sourceSets.main }
+                historical_document_tests { source sourceSets.integration }
+            }
+            property 'documents.client', testClient
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', project.file('build/createSrgToMcp/output.srg').absolutePath
+            args '--username', testClient, '--width', '640', '--height', '480'
+            jvmArgs '-Xmx1536M', '-XX:ActiveProcessorCount=3'
+        }
+    }
+    tasks.matching { it.name == 'runClient' }.configureEach { dependsOn 'integrationClasses', 'createSrgToMcp' }
+}
+
 dependencies {
     minecraft 'net.minecraftforge:forge:1.20.1-47.4.28'
     // Core's public API uses stable class names and has no mapped vanilla method calls.

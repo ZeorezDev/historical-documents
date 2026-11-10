@@ -1,0 +1,13 @@
+modLoader="javafml"
+loaderVersion="[47,48)"
+license="All Rights Reserved"
+[[mods]]
+modId="historical_document_tests"
+version="0.1.0"
+displayName="Historical Documents integration tests"
+[[dependencies.historical_document_tests]]
+modId="historical_documents"
+mandatory=true
+versionRange="[0.1.0]"
+ordering="AFTER"
+side="BOTH"
