@@ -60,6 +60,7 @@ public final class ClientSuite {
                 var body = screen.children().stream().filter(MultiLineEditBox.class::isInstance).map(MultiLineEditBox.class::cast).findFirst().orElseThrow();
                 body.setValue("İmar izni.\nZweite Zeile.");
                 press(screen, msg("issuer.personal", ACTOR).getString());
+                press(screen, msg("issuer.town", "Berlin").getString());
                 stage++;
             } else if (stage == 2) {
                 Screenshot.grab(mc.gameDirectory, "draft.png", mc.getMainRenderTarget(), ignored -> {});
@@ -81,6 +82,7 @@ public final class ClientSuite {
                     || screen.children().stream().anyMatch(EditBox.class::isInstance)) throw new AssertionError("Editable signed document");
             Screenshot.grab(mc.gameDirectory, "sealed.png", mc.getMainRenderTarget(), ignored -> {});
             press(screen, msg("close").getString());
+            mc.getConnection().sendCommand("document cosign");
             mc.getConnection().sendCommand("document verify");
             stage++;
         } else if (stage == 2 && received) {

@@ -43,6 +43,13 @@ public final class ServerSuite {
             switch (phase) {
                 case "setup" -> setup(server);
                 case "restart" -> restart(server);
+                case "upgrade", "upgradeRestart" -> upgrade(server, phase.equals("upgrade"));
+                case "networkRestart" -> {
+                    var chest = (ChestBlockEntity) server.overworld().getBlockEntity(CHEST);
+                    var doc = Document.read(chest.getItem(0)).orElseThrow();
+                    var archive = DocumentArchive.get(server);
+                    check(archive.verifies(doc) && archive.entry(doc.id()).signatureCount() == 2, "persisted countersignature");
+                }
                 default -> throw new IllegalArgumentException(phase);
             }
             LogUtils.getLogger().info("DOCUMENTS PASS {}", phase);
@@ -53,7 +60,7 @@ public final class ServerSuite {
         }
     }
 
-    private static ServerPlayer player(MinecraftServer server, String name) {
+    static ServerPlayer player(MinecraftServer server, String name) {
         var id = UUID.nameUUIDFromBytes(name.getBytes(StandardCharsets.UTF_8));
         var profile = new GameProfile(id, name);
         server.getProfileCache().add(profile);
@@ -152,6 +159,35 @@ public final class ServerSuite {
         chest.setItem(0, sealedTown);
         chest.setItem(1, sealedNation);
         chest.setChanged();
+    }
+
+    private static void upgrade(MinecraftServer server, boolean first) throws Exception {
+        restart(server); // Read the two untouched v0.1.0 items placed by that release.
+        var chest = (ChestBlockEntity) server.overworld().getBlockEntity(CHEST);
+        var original = chest.getItem(0).copy();
+        var doc = Document.read(original).orElseThrow();
+        var mayor = player(server, "DocMehmet");
+        var oldMayor = player(server, "DocAhmet");
+        var foreign = player(server, "DocDeniz");
+        for (var person : new ServerPlayer[]{mayor, oldMayor, foreign}) person.setItemInHand(MAIN_HAND, original.copy());
+        check(doc.fields().equals(TEXT) && doc.seal().signer().equals(oldMayor.getUUID()), "legacy content and original signer");
+        check(command(mayor, "document archive town Berlin") == 1 && command(mayor, "document archive info " + doc.id()) == 1,
+                "old town archive after transfer");
+        if (first) {
+            check(command(oldMayor, "document revoke Former") == 0 && command(foreign, "document revoke Foreign") == 0, "revocation authority");
+            check(command(mayor, "document revoke Test reason") == 1, "new mayor revokes");
+        }
+        check(command(mayor, "document revoke Again") == 0 && command(foreign, "document cosign") == 0, "final status");
+        check(command(oldMayor, "document verify") == 1 && open(oldMayor).history().getString().contains("Test reason"), "old copy authentic and revoked");
+        var forged = original.copy();
+        forged.getTagElement("HistoricalDocument").putString("SecondSignature", "Unregistered");
+        foreign.setItemInHand(MAIN_HAND, forged);
+        check(command(foreign, "document verify") == 0, "unregistered additional seal");
+        net.minecraft.world.level.saveddata.SavedData saved = DocumentArchive.get(server);
+        var broken = saved.save(new net.minecraft.nbt.CompoundTag());
+        broken.getList("Records", 10).getCompound(0).remove("Additional");
+        net.minecraft.world.level.saveddata.SavedData locked = DocumentArchive.load(broken);
+        check(locked.save(new net.minecraft.nbt.CompoundTag()).equals(broken), "preserve damaged archive");
     }
 
     private static void restart(MinecraftServer server) throws Exception {

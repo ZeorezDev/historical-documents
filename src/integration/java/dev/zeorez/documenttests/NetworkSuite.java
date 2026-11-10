@@ -22,7 +22,13 @@ final class NetworkSuite {
             var player = ctx.getSource().getPlayerOrException();
             var doc = Document.read(player.getMainHandItem()).orElseThrow();
             if (step == 2 && player.getGameProfile().getName().equals("DocReader")
-                    && DocumentArchive.get(player.server).verifies(doc)) {
+                    && DocumentArchive.get(player.server).verifies(doc)
+                    && DocumentArchive.get(player.server).entry(doc.id()).signatureCount() == 2) {
+                var pos = new net.minecraft.core.BlockPos(0, 80, 0);
+                player.server.overworld().setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.CHEST.defaultBlockState());
+                var chest = (net.minecraft.world.level.block.entity.ChestBlockEntity) player.server.overworld().getBlockEntity(pos);
+                chest.setItem(0, player.getMainHandItem().copy());
+                chest.setChanged();
                 step = 3;
                 LogUtils.getLogger().info("DOCUMENTS PASS network");
                 player.server.halt(false);
@@ -45,16 +51,34 @@ final class NetworkSuite {
         if (writer == null || reader == null) return;
         if (step == 0) {
             server.getCommands().performPrefixedCommand(writer.createCommandSourceStack(), "town create Berlin");
+            server.getCommands().performPrefixedCommand(writer.createCommandSourceStack(), "nation create Germany");
+            server.getCommands().performPrefixedCommand(reader.createCommandSourceStack(), "town create Paris");
+            server.getCommands().performPrefixedCommand(reader.createCommandSourceStack(), "nation create France");
             writer.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(HistoricalDocuments.BLANK.get()));
             step = 1;
         } else if (step == 1) {
             var doc = Document.read(writer.getMainHandItem()).orElse(null);
             if (doc == null || doc.seal() == null) return;
             if (!doc.fields().title().equals("İzin 41") || !doc.fields().body().equals("İmar izni.\nZweite Zeile.")
-                    || !doc.issuer().name().equals("Berlin") || !doc.seal().signer().equals(writer.getUUID())) {
+                    || !doc.issuer().name().equals("Germany") || !doc.seal().signer().equals(writer.getUUID())) {
                 throw new AssertionError("GUI fields or seal changed");
             }
-            reader.setItemInHand(InteractionHand.MAIN_HAND, writer.getMainHandItem());
+            reader.setItemInHand(InteractionHand.MAIN_HAND, writer.getMainHandItem().copy());
+            var commands = server.getCommands();
+            try {
+                if (commands.getDispatcher().execute("document cosign", reader.createCommandSourceStack()) != 0
+                        || commands.getDispatcher().execute("document invite DocReader", writer.createCommandSourceStack()) != 1)
+                    throw new AssertionError("invitation authorization");
+                var deputy = ServerSuite.player(server, "DocDeputy");
+                commands.getDispatcher().execute("town invite DocDeputy", reader.createCommandSourceStack());
+                commands.getDispatcher().execute("town accept Paris", deputy.createCommandSourceStack());
+                commands.getDispatcher().execute("town setmayor DocDeputy", reader.createCommandSourceStack());
+                if (commands.getDispatcher().execute("document cosign", reader.createCommandSourceStack()) != 0)
+                    throw new AssertionError("former leader used invitation");
+                commands.getDispatcher().execute("town setmayor DocReader", deputy.createCommandSourceStack());
+            } catch (com.mojang.brigadier.exceptions.CommandSyntaxException error) {
+                throw new AssertionError(error);
+            }
             writer.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
             step = 2;
         }
