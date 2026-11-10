@@ -1,0 +1,40 @@
+plugins {
+    id 'java'
+    id 'net.minecraftforge.gradle' version '6.0.54'
+}
+
+group = 'dev.zeorez.historicaldocuments'
+version = '0.1.0'
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+def coreFilename = 'historical_nations-0.2.0.jar'
+def coreJar = file(findProperty('coreJar') ?: "libs/${coreFilename}")
+if (!coreJar.isFile() && !hasProperty('coreJar')) {
+    coreJar = file("../historicalnationscore/build/libs/${coreFilename}")
+}
+if (!coreJar.isFile()) throw new GradleException("Historical Nations Core v0.2.0 required. Supply -PcoreJar=<path to ${coreFilename}>")
+
+sourceSets {
+    integration {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+    }
+}
+minecraft {
+    mappings channel: 'official', version: '1.20.1'
+}
+
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.20.1-47.4.28'
+    // Core's public API uses stable class names and has no mapped vanilla method calls.
+    compileOnly files(coreJar)
+}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+jar.finalizedBy 'reobfJar'
+
+tasks.register('integrationJar', Jar) {
+    from sourceSets.integration.output
+    archiveBaseName = 'historical-documents-tests'
+    destinationDirectory = layout.buildDirectory.dir('integration')
+}
+reobf { integrationJar {} }
+tasks.named('integrationJar') { finalizedBy 'reobfIntegrationJar' }

@@ -1,0 +1,30 @@
+modLoader="javafml"
+loaderVersion="[47,48)"
+license="All Rights Reserved"
+
+[[mods]]
+modId="historical_documents"
+version="0.1.0"
+displayName="Historical Documents"
+description="Player-written documents and verifiable municipal and national seals."
+
+[[dependencies.historical_documents]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.28,48)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.historical_documents]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1]"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.historical_documents]]
+modId="historical_nations"
+mandatory=true
+versionRange="[0.2.0]"
+ordering="AFTER"
+side="BOTH"
