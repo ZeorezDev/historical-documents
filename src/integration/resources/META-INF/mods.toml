@@ -1,6 +1,6 @@
 modLoader="javafml"
 loaderVersion="[47,48)"
-license="All Rights Reserved"
+license="GPL-3.0-only"
 [[mods]]
 modId="historical_document_tests"
 version="0.1.0"
