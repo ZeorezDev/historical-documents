@@ -3,11 +3,11 @@ loaderVersion="[47,48)"
 license="GPL-3.0-only"
 [[mods]]
 modId="historical_document_tests"
-version="0.1.0"
+version="0.2.0"
 displayName="Historical Documents integration tests"
 [[dependencies.historical_document_tests]]
 modId="historical_documents"
 mandatory=true
-versionRange="[0.1.0]"
+versionRange="[0.2.0]"
 ordering="AFTER"
 side="BOTH"

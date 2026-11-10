@@ -16,6 +16,13 @@ final class Authority {
         };
     }
 
+    static Optional<java.util.UUID> currentByPlayer(net.minecraft.server.MinecraftServer server, java.util.UUID id, Scope scope) {
+        var api = HistoricalNationsApi.get(server);
+        if (scope == Scope.TOWN && api.isTownMayor(id)) return api.getPlayerTown(id).map(t -> t.id());
+        if (scope == Scope.NATION && api.isNationLeader(id)) return api.getPlayerNation(id).map(n -> n.id());
+        return Optional.empty();
+    }
+
     static Optional<Issuer> signingOffice(ServerPlayer player, Issuer intended) {
         var api = HistoricalNationsApi.get(player.server);
         boolean holdsOffice = switch (intended.scope()) {

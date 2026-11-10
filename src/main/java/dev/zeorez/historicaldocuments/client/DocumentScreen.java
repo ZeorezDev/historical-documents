@@ -41,7 +41,7 @@ public final class DocumentScreen extends Screen {
             if (!doc.fields().recipient().isEmpty()) text.append(msg("recipient.line", doc.fields().recipient())).append("\n");
             text.append("\n").append(doc.fields().body()).append("\n\n")
                     .append(msg(doc.issuer().scope() == Document.Scope.TOWN ? "seal.town" : "seal.nation"))
-                    .append("\n").append(msg("signature", doc.seal().name(), Instant.ofEpochMilli(doc.seal().time()).toString()))
+                    .append("\n").append(packet.history())
                     .append("\n").append(doc.id().toString());
             addRenderableWidget(new FittingMultiLineTextWidget(x, top + 30, w, pageHeight - 66, text, font));
             button(x, top + pageHeight - 25, w, msg("close"), b -> onClose());

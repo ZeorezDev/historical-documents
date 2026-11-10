@@ -45,7 +45,8 @@ public final class DocumentService {
             sessions.put(player, new Session(token, hand, held, held.copy(), List.copyOf(choices)));
         }
         boolean maySign = doc != null && doc.seal() == null && Authority.signingOffice(player, doc.issuer()).isPresent();
-        return new DocumentNetwork.Open(token, doc, choices, maySign);
+        var history = doc != null && doc.seal() != null ? archive.entry(doc.id()).history() : net.minecraft.network.chat.Component.empty();
+        return new DocumentNetwork.Open(token, doc, choices, maySign, history);
     }
 
     private static Session consume(ServerPlayer player, UUID token) {
