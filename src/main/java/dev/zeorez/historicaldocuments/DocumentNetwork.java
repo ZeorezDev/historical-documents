@@ -12,11 +12,13 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import static dev.zeorez.historicaldocuments.Document.*;
 
 public final class DocumentNetwork {
-    private static final String VERSION = "2";
+    private static final String VERSION = "3";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(HistoricalDocuments.ID, "documents"), () -> VERSION, VERSION::equals, VERSION::equals);
 
-    public record Open(UUID token, Document document, List<Issuer> choices, boolean maySign, net.minecraft.network.chat.Component history) {
+    public enum Kind { ORIGINAL, PRINTED, CERTIFIED }
+
+    public record Open(UUID token, Document document, List<Issuer> choices, boolean maySign, net.minecraft.network.chat.Component history, Kind kind) {
         void write(FriendlyByteBuf buf) {
             buf.writeUUID(token);
             buf.writeNbt(document == null ? null : document.encode());
@@ -28,6 +30,7 @@ public final class DocumentNetwork {
             }
             buf.writeBoolean(maySign);
             buf.writeComponent(history);
+            buf.writeEnum(kind);
         }
 
         static Open read(FriendlyByteBuf buf) {
@@ -40,7 +43,7 @@ public final class DocumentNetwork {
             for (int i = 0; i < count; i++) {
                 issuers.add(new Issuer(buf.readEnum(Scope.class), buf.readUUID(), buf.readUtf(80)));
             }
-            return new Open(token, doc, List.copyOf(issuers), buf.readBoolean(), buf.readComponent());
+            return new Open(token, doc, List.copyOf(issuers), buf.readBoolean(), buf.readComponent(), buf.readEnum(Kind.class));
         }
     }
 

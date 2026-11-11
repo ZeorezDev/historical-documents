@@ -13,11 +13,60 @@ public final class DocumentArchive extends SavedData {
     private final Map<UUID, ArchiveEntry> entries = new HashMap<>();
     private final Map<UUID, NavigableSet<ArchiveEntry>> offices = new HashMap<>();
     private final Set<Issuer> names = new HashSet<>();
+    private final Map<UUID, Certificate> certificates = new HashMap<>();
     private CompoundTag unreadable;
+
+    Certificate certificate(net.minecraft.world.item.ItemStack stack) {
+        if (!stack.is(HistoricalDocuments.CERTIFIED.get()) || stack.getCount() != 1) return null;
+        var data = stack.getTagElement("Certificate");
+        if (data == null || !data.hasUUID("Copy")) return null;
+        var cert = certificates.get(data.getUUID("Copy"));
+        return cert != null && cert.encode().equals(data) ? cert : null;
+    }
+
+    private static java.nio.file.Path archiveFile(MinecraftServer server) {
+        return server.getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT)
+                .resolve("data/historical_documents.dat");
+    }
+
+    // Publish the certificate and its source in one durable snapshot before the press delivers the item.
+    boolean issue(MinecraftServer server, Certificate cert) {
+        if (unreadable != null || certificates.putIfAbsent(cert.id(), cert) != null) return false;
+        java.nio.file.Path tmp = null;
+        try {
+            var file = archiveFile(server);
+            java.nio.file.Files.createDirectories(file.getParent());
+            tmp = java.nio.file.Files.createTempFile(file.getParent(), "historical_documents-", ".tmp");
+            var wrapper = new CompoundTag();
+            wrapper.put("data", save(new CompoundTag()));
+            NbtIo.writeCompressed(NbtUtils.addCurrentDataVersion(wrapper), tmp.toFile());
+            try (var channel = java.nio.channels.FileChannel.open(tmp, java.nio.file.StandardOpenOption.WRITE)) {
+                channel.force(true);
+            }
+            java.nio.file.Files.move(tmp, file, java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            setDirty(false);
+            return true;
+        } catch (java.io.IOException | RuntimeException error) {
+            certificates.remove(cert.id());
+            LogUtils.getLogger().error("Could not commit certified impression", error);
+            return false;
+        } finally {
+            try { if (tmp != null) java.nio.file.Files.deleteIfExists(tmp); }
+            catch (java.io.IOException error) { LogUtils.getLogger().warn("Could not clean temporary archive", error); }
+        }
+    }
 
     public static DocumentArchive get(MinecraftServer server) {
         return server.overworld().getDataStorage().computeIfAbsent(DocumentArchive::load,
-                DocumentArchive::new, "historical_documents");
+                () -> {
+                    var archive = new DocumentArchive();
+                    if (!java.nio.file.Files.notExists(archiveFile(server))) {
+                        archive.unreadable = new CompoundTag();
+                        LogUtils.getLogger().error("Cannot read existing document archive; writes disabled.");
+                    }
+                    return archive;
+                }, "historical_documents");
     }
 
     boolean reserved(UUID id) { return entries.containsKey(id); }
@@ -99,14 +148,26 @@ public final class DocumentArchive extends SavedData {
         var archive = new DocumentArchive();
         try {
             int version = root.getInt("Version");
-            if ((version != 1 && version != 2) || !(root.get("Records") instanceof ListTag records)
+            if ((version < 1 || version > 3) || !(root.get("Records") instanceof ListTag records)
                     || (!records.isEmpty() && records.getElementType() != Tag.TAG_COMPOUND)) throw new IllegalArgumentException();
             for (int i = 0; i < records.size(); i++) {
                 var row = ArchiveEntry.decode(records.getCompound(i), version == 1);
                 if (archive.entries.put(row.original.id(), row) != null) throw new IllegalArgumentException();
                 row.signatures.forEach(s -> archive.index(row, s.office()));
             }
-            if (version == 1) archive.setDirty();
+            if (version == 3) {
+                if (!(root.get("Certificates") instanceof ListTag copies)
+                        || (!copies.isEmpty() && copies.getElementType() != Tag.TAG_COMPOUND)) throw new IllegalArgumentException();
+                for (int i = 0; i < copies.size(); i++) {
+                    var cert = Certificate.decode(copies.getCompound(i));
+                    var row = archive.entry(cert.source());
+                    if (row == null || !row.original.issuer().id().equals(cert.office().id())
+                            || row.original.issuer().scope() != cert.office().scope()
+                            || archive.certificates.put(cert.id(), cert) != null) throw new IllegalArgumentException();
+                }
+            } else {
+                archive.setDirty();
+            }
         } catch (RuntimeException error) {
             var locked = new DocumentArchive();
             locked.unreadable = root.copy();
@@ -121,7 +182,10 @@ public final class DocumentArchive extends SavedData {
         if (unreadable != null) return unreadable.copy();
         var records = new ListTag();
         entries.values().forEach(row -> records.add(row.encode()));
-        root.putInt("Version", 2);
+        var copies = new ListTag();
+        certificates.values().forEach(cert -> copies.add(cert.encode()));
+        root.put("Certificates", copies);
+        root.putInt("Version", 3);
         root.put("Records", records);
         return root;
     }

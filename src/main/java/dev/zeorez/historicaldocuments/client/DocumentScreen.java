@@ -19,7 +19,11 @@ public final class DocumentScreen extends Screen {
     private static final int INK = 0xff382e27, RED = 0xff81372e;
 
     private DocumentScreen(DocumentNetwork.Open packet) {
-        super(msg(packet.document() != null && packet.document().seal() != null ? "official" : "editor"));
+        super(switch (packet.kind()) {
+            case PRINTED -> msg("copy.printed");
+            case CERTIFIED -> msg("copy.certified");
+            case ORIGINAL -> msg(packet.document() != null && packet.document().seal() != null ? "official" : "editor");
+        });
         this.packet = packet;
     }
 
@@ -35,13 +39,13 @@ public final class DocumentScreen extends Screen {
         top = (height - pageHeight) / 2;
         int x = left + 10, w = pageWidth - 24;
         var doc = packet.document();
-        if (doc != null && doc.seal() != null) {
+        if (doc != null && (doc.seal() != null || packet.kind() != DocumentNetwork.Kind.ORIGINAL)) {
             var text = Component.literal(doc.fields().title()).append("\n").append(msg("type.line", doc.fields().type()))
                     .append("\n").append(doc.issuer().label()).append("\n");
             if (!doc.fields().recipient().isEmpty()) text.append(msg("recipient.line", doc.fields().recipient())).append("\n");
-            text.append("\n").append(doc.fields().body()).append("\n\n")
-                    .append(msg(doc.issuer().scope() == Document.Scope.TOWN ? "seal.town" : "seal.nation"))
-                    .append("\n").append(packet.history())
+            text.append("\n").append(doc.fields().body()).append("\n\n");
+            if (doc.seal() != null) text.append(msg(doc.issuer().scope() == Document.Scope.TOWN ? "seal.town" : "seal.nation")).append("\n");
+            text.append(packet.history())
                     .append("\n").append(doc.id().toString());
             addRenderableWidget(new FittingMultiLineTextWidget(x, top + 30, w, pageHeight - 66, text, font));
             button(x, top + pageHeight - 25, w, msg("close"), b -> onClose());
@@ -131,8 +135,10 @@ public final class DocumentScreen extends Screen {
             refresh();
         } else {
             int x = left + pageWidth - 22;
-            g.fill(x, top + 4, x + 13, top + 17, RED);
-            g.drawCenteredString(font, "◆", x + 6, top + 6, 0xfff0ddba);
+            if (packet.kind() != DocumentNetwork.Kind.PRINTED) {
+                g.fill(x, top + 4, x + 13, top + 17, RED);
+                g.drawCenteredString(font, "◆", x + 6, top + 6, 0xfff0ddba);
+            }
             g.fill(left + 10, top + 30, left + pageWidth - 14, top + pageHeight - 36, 0xff332d27);
         }
         super.render(g, mx, my, delta);

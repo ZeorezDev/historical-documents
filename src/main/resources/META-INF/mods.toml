@@ -4,7 +4,7 @@ license="GPL-3.0-only"
 
 [[mods]]
 modId="historical_documents"
-version="0.2.0"
+version="0.3.0"
 displayName="Historical Documents"
 description="Player-written documents and verifiable municipal and national seals."
 
@@ -26,5 +26,12 @@ side="BOTH"
 modId="historical_nations"
 mandatory=true
 versionRange="[0.2.0]"
+ordering="AFTER"
+side="BOTH"
+
+[[dependencies.historical_documents]]
+modId="historicallinotype"
+mandatory=false
+versionRange="[1.2.0,2)"
 ordering="AFTER"
 side="BOTH"

@@ -31,6 +31,16 @@ final class DocumentCommands {
 
     static int inspect(CommandSourceStack source, boolean verify) throws CommandSyntaxException {
         var stack = source.getPlayerOrException().getMainHandItem();
+        if (CopyView.isCopy(stack)) {
+            var copy = CopyView.resolve(DocumentArchive.get(source.getServer()), stack);
+            if (copy == null) {
+                source.sendFailure(msg("invalid"));
+                return 0;
+            }
+            source.sendSuccess(() -> msg("copy.source", copy.doc().fields().title(), copy.doc().id().toString())
+                    .append("\n").append(copy.details()), false);
+            return !verify || copy.kind() == DocumentNetwork.Kind.CERTIFIED ? 1 : 0;
+        }
         if (!stack.is(WRITTEN.get())) {
             source.sendFailure(msg("hold"));
             return 0;

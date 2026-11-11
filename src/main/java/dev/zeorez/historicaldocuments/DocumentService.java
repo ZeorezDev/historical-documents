@@ -29,6 +29,15 @@ public final class DocumentService {
         var doc = Document.read(held).orElse(null);
         boolean blank = held.is(BLANK.get()) && held.getCount() == 1;
         var archive = DocumentArchive.get(player.server);
+        if (CopyView.isCopy(held)) {
+            var copy = CopyView.resolve(archive, held);
+            if (copy == null) {
+                report(player, "invalid");
+                return null;
+            }
+            return new DocumentNetwork.Open(UUID.randomUUID(), copy.doc(), List.of(copy.doc().issuer()),
+                    false, copy.details(), copy.kind());
+        }
         if ((!blank && doc == null) || (doc != null && (doc.seal() != null || archive.reserved(doc.id()))
                 && !archive.verifies(doc))) {
             report(player, "invalid");
@@ -46,7 +55,7 @@ public final class DocumentService {
         }
         boolean maySign = doc != null && doc.seal() == null && Authority.signingOffice(player, doc.issuer()).isPresent();
         var history = doc != null && doc.seal() != null ? archive.entry(doc.id()).history() : net.minecraft.network.chat.Component.empty();
-        return new DocumentNetwork.Open(token, doc, choices, maySign, history);
+        return new DocumentNetwork.Open(token, doc, choices, maySign, history, DocumentNetwork.Kind.ORIGINAL);
     }
 
     private static Session consume(ServerPlayer player, UUID token) {
