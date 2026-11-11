@@ -30,8 +30,12 @@ final class NetworkSuite {
                 chest.setItem(0, player.getMainHandItem().copy());
                 chest.setChanged();
                 step = 3;
-                LogUtils.getLogger().info("DOCUMENTS PASS network");
-                player.server.halt(false);
+                if ("printing".equals(System.getProperty("documents.test"))) {
+                    new PrintingSuite(player.server.getPlayerList().getPlayerByName("DocWriter"), player, player.getMainHandItem().copy());
+                } else {
+                    LogUtils.getLogger().info("DOCUMENTS PASS network");
+                    player.server.halt(false);
+                }
             }
             return 1;
         }));

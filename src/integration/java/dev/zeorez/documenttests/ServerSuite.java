@@ -27,7 +27,7 @@ public final class ServerSuite {
     private static final BlockPos CHEST = new BlockPos(0, 80, 0);
 
     public ServerSuite() {
-        if ("network".equals(System.getProperty("documents.test"))) {
+        if (java.util.Set.of("network", "printing").contains(System.getProperty("documents.test", ""))) {
             new NetworkSuite();
         } else {
             MinecraftForge.EVENT_BUS.addListener(this::tick);
@@ -41,6 +41,7 @@ public final class ServerSuite {
         var server = event.getServer();
         try {
             switch (phase) {
+                case "printRestart" -> PrintingSuite.restart(server);
                 case "setup" -> setup(server);
                 case "restart" -> restart(server);
                 case "upgrade", "upgradeRestart" -> upgrade(server, phase.equals("upgrade"));

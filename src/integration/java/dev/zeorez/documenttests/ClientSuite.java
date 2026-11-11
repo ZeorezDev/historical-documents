@@ -47,6 +47,12 @@ public final class ClientSuite {
 
     private static void writer(Minecraft mc) {
         var held = mc.player.getMainHandItem();
+        if (stage == 5 && mc.player.containerMenu.slots.size() == 48
+                && mc.player.containerMenu.getSlot(0).getItem().is(HistoricalDocuments.WRITTEN.get())) {
+            mc.gameMode.handleInventoryButtonClick(mc.player.containerMenu.containerId, 6);
+            mc.gameMode.handleInventoryButtonClick(mc.player.containerMenu.containerId, 6);
+            stage++;
+        }
         if ((stage == 0 && held.is(HistoricalDocuments.BLANK.get())
                 || stage == 3 && Document.read(held).isPresent()) && mc.screen == null) {
             mc.gameMode.useItem(mc.player, InteractionHand.MAIN_HAND);
