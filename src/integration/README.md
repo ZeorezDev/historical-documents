@@ -1,6 +1,6 @@
 # Forge dedicated server testleri
 
-JDK 17 ile proje kökünde `./gradlew build integrationJar` çalıştırın. Ayrı bir Forge **1.20.1-47.4.28** test kurulumunun `mods/` dizinine Documents dağıtım JAR’ını, `build/integration/historical-documents-tests-0.1.0.jar` test paketini, Core 0.2.0 ve OPAC 0.33.0 dağıtım JAR’larını koyun. Test paketi yalnızca geçici test dünyaları içindir. Test kurulumu için Minecraft EULA koşullarını tamamlayın.
+JDK 17 ile proje kökünde `./gradlew build integrationJar` çalıştırın. Ayrı bir Forge **1.20.1-47.4.28** test kurulumunun `mods/` dizinine Documents dağıtım JAR’ını, `build/integration/historical-documents-tests-0.2.0.jar` test paketini, Core 0.2.0 ve OPAC 0.33.0 dağıtım JAR’larını koyun. Test paketi yalnızca geçici test dünyaları içindir. Test kurulumu için Minecraft EULA koşullarını tamamlayın.
 
 ## Yetkiler, doğrulama ve disk kaydı
 
@@ -39,11 +39,19 @@ Proje kökünde iki terminalden çalıştırın.
 .\gradlew.bat runClient -PdocumentTestClient=DocReader --project-cache-dir run-DocReader/gradle-cache
 ```
 
-İlk açılışta erişilebilirlik ekranı gösterilirse ana menüye geçin. Her istemci ana menüden yerel test sunucusuna bağlanır. Yazar boş belgeyi kullanır, düzenleyicide kurum seçer, iki satırlı metni kaydeder ve yeniden açarak mühürler. Test sunucusu eşyayı diğer oyuncuya aktarır. Alıcı salt okunur ekranı açar ve `/document verify` yanıtını alır. Başarıda sunucu `DOCUMENTS PASS network` yazar ve kapanır. Test istemcileri kendi `screenshots/` dizinlerine taslak ve imzalı ekranın görüntüsünü yazar.
+İlk açılışta erişilebilirlik ekranı gösterilirse ana menüye geçin. Her istemci ana menüden yerel test sunucusuna bağlanır. Yazar boş belgeyi kullanır, düzenleyicide kurum seçer, iki satırlı metni kaydeder ve yeniden açarak mühürler. Yazar ve alıcı ayrı devletlerin liderleridir. Sunucu alıcının davetsiz imza isteğini reddeder, daveti kaydeder ve başkanlığı geçici olarak devrederek eski liderin isteğini reddeder. Alıcı yeniden lider olduğunda özgün belge kopyasını kullanır. Alıcı salt okunur ekranı açar ve `/document cosign` ile imzalar. Ardından `/document verify` yanıtını alır. Başarıda sunucu `DOCUMENTS PASS network` yazar ve kapanır. Test istemcileri kendi `screenshots/` dizinlerine taslak ve imzalı ekranın görüntüsünü yazar.
 
 ## Zorunlu bağımlılık
 
 Ayrı bir Forge test kurulumunda yalnız Documents dağıtım JAR’ı ile başlatın. Başarı ölçütü Forge’un yüklemeyi durdurması ve bağımlılık hatasında `historical_documents` için `historical_nations` sürüm 0.2.0 gerektiğini ve mevcut sürümün `[MISSING]` olduğunu bildirmesidir.
+
+## 0.2.0 geçiş ve diplomatik imza testleri
+
+Eski dağıtım ve test JAR’larıyla `setup` çalıştırılmış v0.1.0 dünyasının kapalı bir kopyasını alın. Kopyayı v0.2.0 sunucusunda önce `-Ddocuments.test=upgrade`, ardından aynı dünya adıyla ayrı bir süreçte `-Ddocuments.test=upgradeRestart` kullanarak açın. Her aşamada günlükte ilgili `DOCUMENTS PASS` satırını arayın. Bu senaryo eski sandıktaki özgün UUID, içerik ve ilk imzayı arşivle karşılaştırır. Berlin’in yeni başkanı iptal eder, eski başkan ve yabancı başkan reddedilir. Eski kopyanın iptal gerekçesi yeniden açılışta okunur. Değiştirilmiş ek mühür reddedilir. Bozuk bir arşiv örneğinin yeniden kayıtta korunduğu ayrıca sınanır.
+
+Yeni bir dünyada yukarıdaki iki istemcili `network` testini çalıştırın. İlk imza Germany, ikinci imza France adına kaydedilir. İki oyuncunun işlemleri bittikten sonra aynı dünyayı `-Ddocuments.test=networkRestart` ile yeniden açın. Sandıktaki özgün kopyanın geçerli olduğu ve arşivde tam iki imzasının bulunduğu denetlenir.
+
+Forge 47.4.28 ve Java 17 ile dört ayrı sunucu çalıştırmasında `PASS upgrade`, `PASS upgradeRestart`, `PASS network` ve `PASS networkRestart` gözlendi. İlk geçiş denemesinde test JAR’ının `SavedData.save` yöntemine çağrısı dağıtım adlarına çevrilmemişti. Test, Forge sınıfı üzerinden çağıracak şekilde düzeltildi ve özgün v0.1.0 yedeğinin yeni kopyası üzerinde tekrar çalıştırıldı.
 
 ## 0.1.0 için gözlenen sonuçlar
 

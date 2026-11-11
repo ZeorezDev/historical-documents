@@ -19,6 +19,12 @@ final class DocumentCommands {
                     c.getSource().sendSuccess(() -> msg("given"), false);
                     return 1;
                 }))
+                .then(ArchiveCommands.tree())
+                .then(literal("revoke").then(net.minecraft.commands.Commands.argument("reason", com.mojang.brigadier.arguments.StringArgumentType.greedyString())
+                        .executes(c -> ArchiveCommands.change(c.getSource(), "revoke", c.getArgument("reason", String.class), null))))
+                .then(literal("invite").then(net.minecraft.commands.Commands.argument("player", net.minecraft.commands.arguments.EntityArgument.player())
+                        .executes(c -> ArchiveCommands.change(c.getSource(), "invite", "", net.minecraft.commands.arguments.EntityArgument.getPlayer(c, "player")))))
+                .then(literal("cosign").executes(c -> ArchiveCommands.change(c.getSource(), "cosign", "", null)))
                 .then(literal("verify").executes(c -> inspect(c.getSource(), true)))
                 .then(literal("info").executes(c -> inspect(c.getSource(), false))));
     }
@@ -37,10 +43,12 @@ final class DocumentCommands {
             return 0;
         }
         if (verify) {
-            source.sendSuccess(() -> msg("verified", doc.id().toString()), false);
+            var row = archive.entry(doc.id());
+            source.sendSuccess(() -> msg("verified", doc.id().toString()).append(" · ").append(row.status())
+                    .append(" · ").append(msg("signatures", row.signatureCount())), false);
         } else {
             source.sendSuccess(() -> msg("info", doc.fields().title(), doc.fields().type(), doc.issuer().label(),
-                    msg(doc.seal() == null ? "draft" : "official"), doc.id().toString()), false);
+                    doc.seal() == null ? msg("draft") : archive.entry(doc.id()).status(), doc.id().toString()), false);
             if (doc.seal() != null) source.sendSuccess(() -> msg("signature", doc.seal().name(),
                     java.time.Instant.ofEpochMilli(doc.seal().time()).toString()), false);
         }
@@ -49,6 +57,7 @@ final class DocumentCommands {
 
     private static int help(CommandSourceStack source) {
         source.sendSuccess(() -> msg("help"), false);
+        source.sendSuccess(() -> msg("help.archive"), false);
         if (source.hasPermission(2)) source.sendSuccess(() -> msg("help.give"), false);
         return 1;
     }
