@@ -1,5 +1,12 @@
 # Değişiklikler
 
+## 0.3.0
+
+- Historical Linotype 1.2.0 makinesiyle normal ve tasdikli belge sureti basılabilir.
+- Tasdik yetkisi, özgün belgenin ilk düzenleyicisi ve baskı anındaki makam üzerinden denetlenir.
+- Kayıtlı suretler güncel imzaları ve iptal durumunu arşivden gösterir. Normal suret üretimi arşiv kaydı gerektirmez.
+- Sürüm 3 arşivi v1 ve v2 dünyalarını okuyabilir.
+
 ## 0.2.0
 
 - Belediye ve devlet arşivlerine sayfalı sorgular ve belge UUID’siyle künye görüntüleme eklendi.

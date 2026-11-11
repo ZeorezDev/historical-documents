@@ -1,6 +1,18 @@
 # Forge dedicated server testleri
 
-JDK 17 ile proje kökünde `./gradlew build integrationJar` çalıştırın. Ayrı bir Forge **1.20.1-47.4.28** test kurulumunun `mods/` dizinine Documents dağıtım JAR’ını, `build/integration/historical-documents-tests-0.2.0.jar` test paketini, Core 0.2.0 ve OPAC 0.33.0 dağıtım JAR’larını koyun. Test paketi yalnızca geçici test dünyaları içindir. Test kurulumu için Minecraft EULA koşullarını tamamlayın.
+JDK 17 ile proje kökünde `./gradlew build integrationJar` çalıştırın. Ayrı bir Forge **1.20.1-47.4.28** test kurulumunun `mods/` dizinine Documents dağıtım JAR’ını, `build/integration/historical-documents-tests-0.3.0.jar` test paketini, Core 0.2.0 ve OPAC 0.33.0 dağıtım JAR’larını koyun. Test paketi yalnızca geçici test dünyaları içindir. Test kurulumu için Minecraft EULA koşullarını tamamlayın.
+
+## 0.3.0 baskı testi
+
+Sunucunun `mods/` klasörüne Historical Linotype 1.2.0 dağıtım JAR’ını ekleyin. Aşağıdaki iki istemcili ağ testi ayarlarıyla yeni bir dünyada `-Ddocuments.test=printing` seçin. Her iki istemcinin Gradle komutuna `-PprintingTest` ekleyin. Test, gerçek makine menüsünden gönderilen çift tasdik isteğini, iki kitap türünü, normal sureti, makam ve kaynak değişimini, sahte kimlikleri, iptali ve malzeme tüketimini sınar. Sunucu kapandıktan sonra aynı dünyayı `-Ddocuments.test=printRestart` ile açın. Bu aşama sandıktaki tasdikli sureti, özgün belgeyi, imzaları ve iptal gerekçesini diskten doğrular.
+
+Linotype olmadan yüklemeyi sınamak için ayrı bir kurulumda makine modunu çıkartıp yeni bir dünyada `setup` çalıştırın. Eski sürümlerin arşivlerini sınamak için v0.1.0 test dünyasının kopyasında `upgrade`, v0.2.0 iki istemcili ağ testi dünyasının kopyasında `networkRestart` kullanın.
+
+### 0.3.0 için gözlenen sonuçlar
+
+Forge 47.4.28 ve Java 17 ile iki bağlı istemcinin kullandığı kurulumda `PASS printing` ve sunucu yeniden başlatıldığında `PASS printRestart` alındı. Eski belediye sureti, baskıdan sonra başka bir belediyenin attığı imzayı gösterdi. Makam devri, kaynak değişimi, iptal ve yetkisiz baskı sırasında makinenin çıktı yuvası boş, kâğıt sayısı ile mürekkep ve yakıt bakiyeleri sabit kaldı. İlk iki istemcili denemelerde test istemcisinin isteğe bağlı Linotype yüklemesi ve çift tıklama isteğinin makineye ulaşması için bekleme süresi düzeltildi.
+
+Linotype bulunmayan ayrı kurulumda `PASS setup`, v0.1.0 dünya kopyasında `PASS upgrade` ve v0.2.0 dünya kopyasında `PASS networkRestart` alındı. Linotype'ın kendi GameTest sunucusundaki dört zorunlu test de geçti. Yeniden başlatma testi düzenli sunucu kapanışıyla yapıldı. Elektrik kesintisi ve büyük arşivlerde baskı performansı sınanmadı.
 
 ## Yetkiler, doğrulama ve disk kaydı
 
